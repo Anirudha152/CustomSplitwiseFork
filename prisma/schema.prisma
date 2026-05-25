@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique
+  name            String?
+  image           String?
+  currency        String        @default("INR")
+  createdAt       DateTime      @default(now())
+  accounts        Account[]
+  sessions        Session[]
+  memberships     GroupMember[]
+  paidExpenses    Expense[]     @relation("PaidBy")
+  createdExpenses Expense[]     @relation("CreatedBy")
+  shares          ExpenseShare[]
+  sentSettles     Settlement[]  @relation("From")
+  receivedSettles Settlement[]  @relation("To")
+  createdSettles  Settlement[]  @relation("SettleCreatedBy")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  inviteToken String        @unique @default(cuid())
+  createdById String
+  createdAt   DateTime      @default(now())
+  members     GroupMember[]
+  expenses    Expense[]
+  settlements Settlement[]
+}
+
+model GroupMember {
+  id       String   @id @default(cuid())
+  groupId  String
+  userId   String
+  joinedAt DateTime @default(now())
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model Expense {
+  id          String         @id @default(cuid())
+  groupId     String?
+  description String
+  amount      Int
+  currency    String         @default("INR")
+  category    String?
+  notes       String?
+  paidById    String
+  createdById String
+  createdAt   DateTime       @default(now())
+  deletedAt   DateTime?
+  group       Group?         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy      User           @relation("PaidBy", fields: [paidById], references: [id])
+  createdBy   User           @relation("CreatedBy", fields: [createdById], references: [id])
+  shares      ExpenseShare[]
+
+  @@index([groupId, createdAt])
+  @@index([deletedAt])
+}
+
+model ExpenseShare {
+  id        String  @id @default(cuid())
+  expenseId String
+  userId    String
+  amount    Int
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([expenseId, userId])
+}
+
+model Settlement {
+  id          String    @id @default(cuid())
+  groupId     String?
+  fromUserId  String
+  toUserId    String
+  amount      Int
+  currency    String    @default("INR")
+  note        String?
+  createdById String
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  group       Group?    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  from        User      @relation("From", fields: [fromUserId], references: [id])
+  to          User      @relation("To", fields: [toUserId], references: [id])
+  createdBy   User      @relation("SettleCreatedBy", fields: [createdById], references: [id])
+
+  @@index([groupId, createdAt])
+}
