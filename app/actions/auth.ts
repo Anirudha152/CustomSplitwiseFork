@@ -6,10 +6,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { AuthError } from "next-auth";
 
-export async function signInWithGoogle(formData: FormData) {
-  const callbackUrl = (formData.get("callbackUrl") as string) ?? "/app";
-  await signIn("google", { redirectTo: callbackUrl });
-}
+
 
 export async function signInWithCredentials(
   _prev: string | null,

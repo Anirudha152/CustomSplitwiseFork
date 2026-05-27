@@ -30,7 +30,7 @@ export default async function Home() {
             Get started — it&apos;s free
           </Link>
           <p className="text-xs text-zinc-400">
-            Sign in with Google or email.
+            Sign in with your email.
           </p>
         </div>
 
