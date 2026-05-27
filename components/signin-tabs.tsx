@@ -31,7 +31,7 @@ export function SignInTabs({ callbackUrl }: { callbackUrl: string }) {
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="signin" className="space-y-4">
+      <TabsContent value="signin" keepMounted className="space-y-4">
         <form action={signinAction} className="space-y-3">
           <input type="hidden" name="callbackUrl" value={callbackUrl} />
           {signinError && (
@@ -67,7 +67,7 @@ export function SignInTabs({ callbackUrl }: { callbackUrl: string }) {
         </form>
       </TabsContent>
 
-      <TabsContent value="signup" className="space-y-4">
+      <TabsContent value="signup" keepMounted className="space-y-4">
         <form action={signupAction} className="space-y-3">
           <input type="hidden" name="callbackUrl" value={callbackUrl} />
           {signupError && (

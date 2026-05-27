@@ -5,8 +5,27 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 
+async function signInAndRedirect(
+  email: string,
+  password: string,
+  callbackUrl: string
+): Promise<string | null> {
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo: callbackUrl,
+      redirect: false,
+    });
+  } catch (e) {
+    if (e instanceof AuthError) return "Invalid email or password.";
+    throw e;
+  }
 
+  redirect(callbackUrl);
+}
 
 export async function signInWithCredentials(
   _prev: string | null,
@@ -21,13 +40,7 @@ export async function signInWithCredentials(
     .safeParse({ email, password });
   if (!parsed.success) return "Invalid email or password.";
 
-  try {
-    await signIn("credentials", { email, password, redirectTo: callbackUrl });
-  } catch (e) {
-    if (e instanceof AuthError) return "Invalid email or password.";
-    throw e;
-  }
-  return null;
+  return signInAndRedirect(email, password, callbackUrl);
 }
 
 export async function signUpWithCredentials(
@@ -51,17 +64,22 @@ export async function signUpWithCredentials(
     return parsed.error.issues[0]?.message ?? "Invalid input.";
   }
 
-  const existing = await db.user.findUnique({ where: { email } });
+  let existing;
+  try {
+    existing = await db.user.findUnique({ where: { email } });
+  } catch {
+    return "Unable to reach the database. Try again in a moment.";
+  }
   if (existing) return "An account with this email already exists.";
 
   const hash = await bcrypt.hash(password, 10);
-  await db.user.create({ data: { email, name, password: hash } });
-
   try {
-    await signIn("credentials", { email, password, redirectTo: callbackUrl });
-  } catch (e) {
-    if (e instanceof AuthError) return "Account created but sign-in failed. Try signing in.";
-    throw e;
+    await db.user.create({ data: { email, name, password: hash } });
+  } catch {
+    return "Could not create your account. Try again in a moment.";
   }
+
+  const signInError = await signInAndRedirect(email, password, callbackUrl);
+  if (signInError) return "Account created but sign-in failed. Try signing in.";
   return null;
 }
